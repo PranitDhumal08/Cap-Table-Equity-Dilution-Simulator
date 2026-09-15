@@ -1,0 +1,288 @@
+{
+  "info": {
+    "_postman_id": "7f8b9c0d-1e2f-4a5b-8c9d-0e1f2a3b4c5d",
+    "name": "CapTableX – Startup Cap Table & Funding Round Dilution Simulator",
+    "description": "Production-grade REST API collection for CapTableX startup capitalization management and venture funding round dilution simulation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "companyId",
+      "value": "a1b2c3d4-0001-4000-8000-000000000001",
+      "type": "string"
+    },
+    {
+      "key": "stakeholderId",
+      "value": "a1b2c3d4-0002-4000-8000-000000000002",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. System Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Health status is UP\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.status).to.eql(\"UP\");",
+              "    pm.expect(jsonData.service).to.eql(\"CapTableX Backend\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Health probe endpoint verifying API availability."
+      },
+      "response": []
+    },
+    {
+      "name": "2. Create Company",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Company ID is returned\", function () {",
+              "    pm.expect(jsonData.companyId).to.not.be.null;",
+              "});",
+              "if (jsonData.companyId) {",
+              "    pm.collectionVariables.set(\"companyId\", jsonData.companyId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"companyName\": \"NovaFin Technologies\",\n  \"currentValuation\": 40000000.00\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/companies",
+          "host": ["{{baseUrl}}"],
+          "path": ["companies"]
+        },
+        "description": "Registers a new startup company with a baseline pre-money valuation."
+      },
+      "response": []
+    },
+    {
+      "name": "3. Add Stakeholder",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "if (jsonData.stakeholderId) {",
+              "    pm.collectionVariables.set(\"stakeholderId\", jsonData.stakeholderId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Founder A\",\n  \"role\": \"FOUNDER\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/companies/{{companyId}}/stakeholders",
+          "host": ["{{baseUrl}}"],
+          "path": ["companies", "{{companyId}}", "stakeholders"]
+        },
+        "description": "Onboards a stakeholder (Founder, VC, Angel, Employee) to an existing company."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Add Shares (Ledger Entry)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Shares assigned correctly\", function () {",
+              "    pm.expect(jsonData.sharesOwned).to.eql(600000.00);",
+              "    pm.expect(jsonData.shareClass).to.eql(\"COMMON\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"shareClass\": \"COMMON\",\n  \"sharesOwned\": 600000.00\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/stakeholders/{{stakeholderId}}/shares",
+          "host": ["{{baseUrl}}"],
+          "path": ["stakeholders", "{{stakeholderId}}", "shares"]
+        },
+        "description": "Issues equity shares of a specified class (COMMON, PREFERRED) to a stakeholder."
+      },
+      "response": []
+    },
+    {
+      "name": "5. Get Current Cap Table",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Cap table contains company info and stakeholders\", function () {",
+              "    pm.expect(jsonData.companyName).to.be.a(\"string\");",
+              "    pm.expect(jsonData.totalShares).to.be.greaterThan(0);",
+              "    pm.expect(jsonData.stakeholders).to.be.an(\"array\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cap-table/{{companyId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["cap-table", "{{companyId}}"]
+        },
+        "description": "Fetches current capitalization table, total share count, and ownership breakdown."
+      },
+      "response": []
+    },
+    {
+      "name": "6. Simulate Series A Funding Round",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Calculates correct Post-Money Valuation\", function () {",
+              "    pm.expect(jsonData.postMoneyValuation).to.eql(50000000.00);",
+              "});",
+              "pm.test(\"Calculates Price Per Share\", function () {",
+              "    pm.expect(jsonData.pricePerShare).to.eql(40.00);",
+              "});",
+              "pm.test(\"Calculates New Investor Ownership %\", function () {",
+              "    pm.expect(jsonData.newInvestorOwnershipPercentage).to.eql(20.00);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"companyId\": \"{{companyId}}\",\n  \"preMoneyValuation\": 40000000.00,\n  \"investmentAmount\": 10000000.00,\n  \"investorName\": \"Alpha Ventures\",\n  \"investorType\": \"VC\",\n  \"shareClass\": \"PREFERRED\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/cap-table/simulate-round",
+          "host": ["{{baseUrl}}"],
+          "path": ["cap-table", "simulate-round"]
+        },
+        "description": "Simulates a venture funding round (read-only) calculating dilution and ownership redistribution without mutating persistent records."
+      },
+      "response": []
+    }
+  ]
+}
