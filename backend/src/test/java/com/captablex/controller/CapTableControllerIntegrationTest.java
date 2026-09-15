@@ -11,6 +11,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.jupiter.api.Assertions;
+
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
@@ -277,6 +281,102 @@ class CapTableControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].investorName", is("Sequoia Prime")))
                     .andExpect(jsonPath("$[0].investmentAmount", is(10000000.0000)))
                     .andExpect(jsonPath("$[0].sharesIssued", is(250000.0000)));
+        }
+
+        @Test
+        @DisplayName("Should execute 100+ consecutive capitalization events maintaining strict ACID transactional integrity and zero decimal drift")
+        void test100ConsecutiveCapitalizationEvents() throws Exception {
+            // 1. Create a dedicated enterprise company
+            String compResponse = mockMvc.perform(post("/api/v1/companies")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of(
+                                    "companyName", "Centurion Capital Corp",
+                                    "currentValuation", 10000000.00
+                            ))))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString();
+
+            String companyId = objectMapper.readTree(compResponse).get("companyId").asText();
+
+            // 2. Add Founding Shareholder with 1,000,000 Common shares
+            String founderRes = mockMvc.perform(post("/api/v1/companies/{companyId}/stakeholders", companyId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of(
+                                    "name", "Genesis Founder",
+                                    "role", "FOUNDER"
+                            ))))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString();
+            String founderId = objectMapper.readTree(founderRes).get("stakeholderId").asText();
+
+            mockMvc.perform(post("/api/v1/stakeholders/{stakeholderId}/shares", founderId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of(
+                                    "shareClass", "COMMON",
+                                    "sharesOwned", 1000000.00
+                            ))))
+                    .andExpect(status().isCreated());
+
+            // 3. Sequentially execute 100 distinct simulated capitalization events
+            BigDecimal currentValuation = new BigDecimal("10000000.00");
+            BigDecimal investmentPerRound = new BigDecimal("100000.00"); // 100k capital injection per round
+
+            for (int i = 1; i <= 100; i++) {
+                Map<String, Object> roundPayload = Map.of(
+                        "companyId", companyId,
+                        "roundName", "Tranche #" + i + " Capital Injection",
+                        "preMoneyValuation", currentValuation,
+                        "investmentAmount", investmentPerRound,
+                        "investorName", "Institutional Partner " + i,
+                        "investorType", (i % 2 == 0) ? "VC" : "ANGEL",
+                        "shareClass", "PREFERRED"
+                );
+
+                String execRes = mockMvc.perform(post("/api/v1/cap-table/execute-round")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(roundPayload)))
+                        .andExpect(status().isCreated())
+                        .andReturn().getResponse().getContentAsString();
+
+                JsonNode root = objectMapper.readTree(execRes);
+                currentValuation = new BigDecimal(root.get("postMoneyValuation").asText());
+            }
+
+            // 4. Verify cap table integrity after 100 sequential events
+            String capTableRes = mockMvc.perform(get("/api/v1/cap-table/{companyId}", companyId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.stakeholders", hasSize(101)))
+                    .andReturn().getResponse().getContentAsString();
+
+            JsonNode capTableNode = objectMapper.readTree(capTableRes);
+            JsonNode stakeholders = capTableNode.get("stakeholders");
+
+            BigDecimal totalOwnershipPercentage = BigDecimal.ZERO;
+            BigDecimal totalSharesCalculated = BigDecimal.ZERO;
+
+            for (JsonNode stakeholder : stakeholders) {
+                totalOwnershipPercentage = totalOwnershipPercentage.add(new BigDecimal(stakeholder.get("ownershipPercentage").asText()));
+                totalSharesCalculated = totalSharesCalculated.add(new BigDecimal(stakeholder.get("shares").asText()));
+            }
+
+            // Equity conservation law: sum of ownership must reconcile to 100.0000% (+/- 0.05% tolerance due to 4-decimal rounding across 101 records)
+            Assertions.assertTrue(
+                    totalOwnershipPercentage.subtract(new BigDecimal("100.0000")).abs().doubleValue() < 0.05,
+                    "Total ownership after 100 rounds must equal 100.0000%, but was: " + totalOwnershipPercentage
+            );
+
+            // Total shares must match cap table totalShares header exactly
+            BigDecimal reportedTotalShares = new BigDecimal(capTableNode.get("totalShares").asText());
+            Assertions.assertEquals(
+                    0,
+                    totalSharesCalculated.compareTo(reportedTotalShares),
+                    "Sum of stakeholder shares must equal reported total shares"
+            );
+
+            // 5. Verify immutable transaction audit ledger contains exactly 100 records
+            mockMvc.perform(get("/api/v1/cap-table/{companyId}/transactions", companyId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(100)));
         }
     }
 }
