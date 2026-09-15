@@ -108,4 +108,23 @@ public class CapTableMapper {
                 .relativeDilutionPercentage(res.getRelativeDilutionPercentage())
                 .build();
     }
+
+    public com.captablex.dto.response.TransactionHistoryResponse toTransactionHistoryResponse(
+            com.captablex.domain.FundingRoundTransaction entity) {
+        return com.captablex.dto.response.TransactionHistoryResponse.builder()
+                .transactionId(entity.getTransactionId())
+                .companyId(entity.getCompany().getCompanyId())
+                .roundName(entity.getRoundName())
+                .investorName(entity.getInvestorName())
+                .investorRole(entity.getInvestorRole())
+                .shareClass(entity.getShareClass())
+                .preMoneyValuation(entity.getPreMoneyValuation())
+                .investmentAmount(entity.getInvestmentAmount())
+                .postMoneyValuation(entity.getPostMoneyValuation())
+                .pricePerShare(entity.getPricePerShare())
+                .sharesIssued(entity.getSharesIssued())
+                .investorOwnershipPct(entity.getInvestorOwnershipPct())
+                .executedAt(entity.getExecutedAt())
+                .build();
+    }
 }

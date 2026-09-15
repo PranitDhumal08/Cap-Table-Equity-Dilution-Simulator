@@ -108,6 +108,7 @@ The database schema models startups, stakeholders, and cap-table allocations wit
 erDiagram
     company_profile ||--o{ stakeholders : "has"
     stakeholders ||--o{ cap_table_ledger : "owns"
+    company_profile ||--o{ funding_round_transactions : "audits"
 
     company_profile {
         UUID company_id PK
@@ -134,6 +135,22 @@ erDiagram
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
+
+    funding_round_transactions {
+        UUID transaction_id PK
+        UUID company_id FK
+        VARCHAR round_name
+        VARCHAR investor_name
+        VARCHAR investor_role
+        VARCHAR share_class
+        NUMERIC pre_money_valuation
+        NUMERIC investment_amount
+        NUMERIC post_money_valuation
+        NUMERIC price_per_share
+        NUMERIC shares_issued
+        NUMERIC investor_ownership_pct
+        TIMESTAMP executed_at
+    }
 ```
 
 ### Constraints & Indexes
@@ -141,6 +158,7 @@ erDiagram
 - **Foreign Keys**:
   - `stakeholders.company_id` -> `company_profile.company_id` (`ON DELETE CASCADE`)
   - `cap_table_ledger.stakeholder_id` -> `stakeholders.stakeholder_id` (`ON DELETE CASCADE`)
+  - `funding_round_transactions.company_id` -> `company_profile.company_id` (`ON DELETE CASCADE`)
 - **Check Constraints**:
   - `chk_company_valuation_positive`: `current_valuation > 0`
   - `chk_shares_owned_positive`: `shares_owned > 0`
@@ -393,6 +411,26 @@ Interactive Swagger UI documentation is available at:
 }
 ```
 - **Response**: `201 Created`
+
+### 7. Execute & Commit Funding Round (ACID Transaction)
+- **Endpoint**: `POST /api/v1/cap-table/execute-round`
+- **Request Body**:
+```json
+{
+  "companyId": "a1b2c3d4-0001-4000-8000-000000000001",
+  "roundName": "Series A Preferred",
+  "preMoneyValuation": 40000000.00,
+  "investmentAmount": 10000000.00,
+  "investorName": "Alpha Ventures",
+  "investorType": "VC",
+  "shareClass": "PREFERRED"
+}
+```
+- **Response**: `201 Created` (Atomically updates valuation, issues shares, creates investor, records transaction)
+
+### 8. Get Transaction Audit Log
+- **Endpoint**: `GET /api/v1/cap-table/{companyId}/transactions`
+- **Response**: `200 OK` (Returns chronological list of committed funding round transactions)
 
 ---
 

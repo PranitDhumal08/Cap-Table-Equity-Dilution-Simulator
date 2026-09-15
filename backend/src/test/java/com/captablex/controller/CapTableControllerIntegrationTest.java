@@ -198,4 +198,85 @@ class CapTableControllerIntegrationTest {
                     .andExpect(jsonPath("$.companyId").isNotEmpty());
         }
     }
+
+    @Nested
+    @DisplayName("POST /api/v1/cap-table/execute-round and Transaction History Tests")
+    class ExecuteRoundTests {
+
+        @Test
+        @DisplayName("Should execute round, commit to DB, update valuation, and log transaction")
+        void testExecuteRoundAndVerifyHistory() throws Exception {
+            // First create a dedicated company for execution test so we don't interfere with other tests
+            String companyPayload = objectMapper.writeValueAsString(Map.of(
+                    "companyName", "Solaris Tech",
+                    "currentValuation", 40000000.00
+            ));
+
+            String compResponse = mockMvc.perform(post("/api/v1/companies")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(companyPayload))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString();
+
+            String newCompId = objectMapper.readTree(compResponse).get("companyId").asText();
+
+            // Add founder
+            String founderPayload = objectMapper.writeValueAsString(Map.of(
+                    "name", "Lead Founder",
+                    "role", "FOUNDER"
+            ));
+            String founderRes = mockMvc.perform(post("/api/v1/companies/{companyId}/stakeholders", newCompId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(founderPayload))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString();
+            String founderId = objectMapper.readTree(founderRes).get("stakeholderId").asText();
+
+            // Add shares: 1,000,000 Common
+            mockMvc.perform(post("/api/v1/stakeholders/{stakeholderId}/shares", founderId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of(
+                                    "shareClass", "COMMON",
+                                    "sharesOwned", 1000000.00
+                            ))))
+                    .andExpect(status().isCreated());
+
+            // Execute Round: ₹10,000,000 investment
+            Map<String, Object> execPayload = Map.of(
+                    "companyId", newCompId,
+                    "roundName", "Series A Preferred",
+                    "preMoneyValuation", 40000000.00,
+                    "investmentAmount", 10000000.00,
+                    "investorName", "Sequoia Prime",
+                    "investorType", "VC",
+                    "shareClass", "PREFERRED"
+            );
+
+            mockMvc.perform(post("/api/v1/cap-table/execute-round")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(execPayload)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.postMoneyValuation", is(50000000.0000)))
+                    .andExpect(jsonPath("$.newSharesIssued", is(250000.0000)))
+                    .andExpect(jsonPath("$.totalPostMoneyShares", is(1250000.0000)))
+                    .andExpect(jsonPath("$.newInvestorName", is("Sequoia Prime")))
+                    .andExpect(jsonPath("$.newInvestorOwnershipPercentage", is(20.0000)));
+
+            // Verify cap table now contains 2 stakeholders and updated valuation
+            mockMvc.perform(get("/api/v1/cap-table/{companyId}", newCompId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.valuation", is(50000000.0000)))
+                    .andExpect(jsonPath("$.totalShares", is(1250000.0000)))
+                    .andExpect(jsonPath("$.stakeholders", hasSize(2)));
+
+            // Verify transaction history audit log
+            mockMvc.perform(get("/api/v1/cap-table/{companyId}/transactions", newCompId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(1)))
+                    .andExpect(jsonPath("$[0].roundName", is("Series A Preferred")))
+                    .andExpect(jsonPath("$[0].investorName", is("Sequoia Prime")))
+                    .andExpect(jsonPath("$[0].investmentAmount", is(10000000.0000)))
+                    .andExpect(jsonPath("$[0].sharesIssued", is(250000.0000)));
+        }
+    }
 }

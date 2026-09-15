@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, PieChart, Users, TrendingUp } from 'lucide-react';
+import { DollarSign, Layers, Users, Hash } from 'lucide-react';
 
 export default function CapTableSummary({ capTable }) {
   if (!capTable) return null;
@@ -23,46 +23,46 @@ export default function CapTableSummary({ capTable }) {
   return (
     <div className="summary-grid">
       <div className="card stat-card">
-        <div className="stat-icon-wrap icon-blue">
-          <DollarSign size={20} />
-        </div>
         <div className="stat-content">
-          <span className="stat-label">Current Valuation</span>
+          <div className="stat-header">
+            <span className="stat-label">Enterprise Valuation</span>
+            <DollarSign size={15} className="text-muted" />
+          </div>
           <span className="stat-value mono">{formatCurrency(capTable.valuation)}</span>
-          <span className="stat-meta">Pre-money cap basis</span>
+          <span className="stat-meta">Active pre-round valuation</span>
         </div>
       </div>
 
       <div className="card stat-card">
-        <div className="stat-icon-wrap icon-green">
-          <PieChart size={20} />
-        </div>
         <div className="stat-content">
-          <span className="stat-label">Total Issued Shares</span>
+          <div className="stat-header">
+            <span className="stat-label">Issued &amp; Outstanding</span>
+            <Layers size={15} className="text-muted" />
+          </div>
           <span className="stat-value mono">{formatShares(capTable.totalShares)}</span>
-          <span className="stat-meta">Common &amp; Preferred equity</span>
+          <span className="stat-meta">Total authorized shares</span>
         </div>
       </div>
 
       <div className="card stat-card">
-        <div className="stat-icon-wrap icon-purple">
-          <Users size={20} />
-        </div>
         <div className="stat-content">
-          <span className="stat-label">Cap Table Stakeholders</span>
-          <span className="stat-value mono">{capTable.stakeholders ? capTable.stakeholders.length : 0}</span>
-          <span className="stat-meta">Founders, Employees, Investors</span>
-        </div>
-      </div>
-
-      <div className="card stat-card">
-        <div className="stat-icon-wrap icon-amber">
-          <TrendingUp size={20} />
-        </div>
-        <div className="stat-content">
-          <span className="stat-label">Baseline PPS</span>
+          <div className="stat-header">
+            <span className="stat-label">Price Per Share</span>
+            <Hash size={15} className="text-muted" />
+          </div>
           <span className="stat-value mono">₹{baselinePPS}</span>
-          <span className="stat-meta">Per share valuation</span>
+          <span className="stat-meta">Current share baseline</span>
+        </div>
+      </div>
+
+      <div className="card stat-card">
+        <div className="stat-content">
+          <div className="stat-header">
+            <span className="stat-label">Cap Table Stakeholders</span>
+            <Users size={15} className="text-muted" />
+          </div>
+          <span className="stat-value mono">{capTable.stakeholders ? capTable.stakeholders.length : 0}</span>
+          <span className="stat-meta">Registered shareholders</span>
         </div>
       </div>
     </div>

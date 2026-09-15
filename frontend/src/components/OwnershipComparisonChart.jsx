@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowDownRight, BarChart2, ShieldAlert } from 'lucide-react';
+import { ArrowDownRight } from 'lucide-react';
 
 export default function OwnershipComparisonChart({ result }) {
   if (!result) return null;
@@ -7,32 +7,29 @@ export default function OwnershipComparisonChart({ result }) {
   const stakeholders = result.stakeholders || [];
   const investorPct = Number(result.newInvestorOwnershipPercentage || 0);
 
-  // Palette for chart items
   const colors = [
     '#3b82f6', // blue
-    '#10b981', // green
+    '#10b981', // emerald
     '#f59e0b', // amber
     '#06b6d4', // cyan
     '#ec4899', // pink
     '#8b5cf6', // violet
   ];
-  const investorColor = '#a855f7'; // purple
+  const investorColor = '#6366f1'; // indigo
 
   return (
     <div className="card comparison-card">
-      <div className="card-header">
-        <div className="flex-between">
-          <div>
-            <h2 className="card-title">Cap Table Evolution: Before vs. After Round</h2>
-            <p className="card-description">
-              Visualizing shareholder dilution and equity redistribution from new capital issuance
-            </p>
-          </div>
-          <div className="legend-pills">
-            <span className="legend-pill" style={{ borderColor: '#3b82f6', color: '#60a5fa' }}>Founders</span>
-            <span className="legend-pill" style={{ borderColor: '#10b981', color: '#34d399' }}>Employees</span>
-            <span className="legend-pill" style={{ borderColor: investorColor, color: '#c084fc' }}>New Investor</span>
-          </div>
+      <div className="card-header flex-between">
+        <div>
+          <h2 className="card-title">Pre-Round vs. Post-Round Ownership Comparison</h2>
+          <p className="card-description">
+            Proportional equity redistribution and dilution resulting from newly minted shares
+          </p>
+        </div>
+        <div className="legend-pills">
+          <span className="legend-pill pill-founders">Founders</span>
+          <span className="legend-pill pill-employees">Employees</span>
+          <span className="legend-pill pill-investor">New Investor</span>
         </div>
       </div>
 
@@ -40,8 +37,8 @@ export default function OwnershipComparisonChart({ result }) {
       <div className="visual-bars-container">
         <div className="bar-group">
           <div className="bar-label-wrap">
-            <span className="bar-title">BEFORE FUNDING (100.0000%)</span>
-            <span className="bar-shares mono">1,000,000 shares</span>
+            <span className="bar-title">BEFORE FINANCING</span>
+            <span className="bar-shares mono">{Number(result.totalPreMoneyShares).toLocaleString()} shares (100.0000%)</span>
           </div>
           <div className="stacked-bar">
             {stakeholders.map((s, idx) => {
@@ -63,8 +60,8 @@ export default function OwnershipComparisonChart({ result }) {
 
         <div className="bar-group">
           <div className="bar-label-wrap">
-            <span className="bar-title">AFTER FUNDING (100.0000%)</span>
-            <span className="bar-shares mono">{Number(result.totalPostMoneyShares).toLocaleString()} shares</span>
+            <span className="bar-title">AFTER FINANCING</span>
+            <span className="bar-shares mono">{Number(result.totalPostMoneyShares).toLocaleString()} shares (100.0000%)</span>
           </div>
           <div className="stacked-bar">
             {stakeholders.map((s, idx) => {
@@ -92,18 +89,18 @@ export default function OwnershipComparisonChart({ result }) {
         </div>
       </div>
 
-      {/* Detailed Comparison Table */}
-      <div className="table-responsive" style={{ marginTop: '1.5rem' }}>
+      {/* Comparison Table */}
+      <div className="table-responsive" style={{ marginTop: '1.25rem' }}>
         <table className="financial-table comparison-table">
           <thead>
             <tr>
               <th>Stakeholder</th>
-              <th>Role</th>
-              <th>Share Class</th>
+              <th>Category</th>
+              <th>Class</th>
               <th className="text-right">Shares Held</th>
-              <th className="text-right">Before %</th>
-              <th className="text-right">After %</th>
-              <th className="text-right">Dilution (pts)</th>
+              <th className="text-right">Pre-Round %</th>
+              <th className="text-right">Post-Round %</th>
+              <th className="text-right">Net Dilution (pts)</th>
               <th className="text-right">Relative Dilution %</th>
             </tr>
           </thead>
@@ -115,7 +112,7 @@ export default function OwnershipComparisonChart({ result }) {
               const rel = Number(s.relativeDilutionPercentage || 0);
               return (
                 <tr key={s.stakeholderId || idx}>
-                  <td className="font-semibold text-white">{s.name}</td>
+                  <td className="font-medium text-white">{s.name}</td>
                   <td><span className="badge-role">{s.role}</span></td>
                   <td><span className="badge-class class-common">{s.shareClass}</span></td>
                   <td className="text-right mono text-white">
@@ -123,43 +120,43 @@ export default function OwnershipComparisonChart({ result }) {
                   </td>
                   <td className="text-right mono text-white">{prev.toFixed(4)}%</td>
                   <td className="text-right mono font-semibold text-primary">{next.toFixed(4)}%</td>
-                  <td className="text-right mono text-danger">
+                  <td className="text-right mono text-rose">
                     <span className="dilution-cell">
-                      <ArrowDownRight size={14} />
+                      <ArrowDownRight size={13} />
                       -{pts.toFixed(4)}%
                     </span>
                   </td>
-                  <td className="text-right mono text-amber font-medium">
+                  <td className="text-right mono text-amber">
                     {rel.toFixed(4)}%
                   </td>
                 </tr>
               );
             })}
 
-            {/* Incoming Investor Row */}
+            {/* New Investor Row */}
             <tr className="tr-investor">
-              <td className="font-bold text-purple">{result.newInvestorName} (New)</td>
-              <td><span className="badge-role role-vc">{result.newInvestorType}</span></td>
+              <td className="font-semibold text-indigo">{result.newInvestorName} (Incoming)</td>
+              <td><span className="badge-role role-vc">{result.newInvestorRole || result.newInvestorType}</span></td>
               <td><span className="badge-class class-preferred">{result.newInvestorShareClass}</span></td>
-              <td className="text-right mono font-bold text-white">
+              <td className="text-right mono font-semibold text-white">
                 {Number(result.newSharesIssued).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
               </td>
               <td className="text-right mono text-muted">0.0000%</td>
-              <td className="text-right mono font-bold text-purple">{investorPct.toFixed(4)}%</td>
-              <td className="text-right mono text-success font-semibold">+{investorPct.toFixed(4)}%</td>
-              <td className="text-right mono text-muted">N/A</td>
+              <td className="text-right mono font-semibold text-indigo">{investorPct.toFixed(4)}%</td>
+              <td className="text-right mono text-emerald font-semibold">+{investorPct.toFixed(4)}%</td>
+              <td className="text-right mono text-muted">–</td>
             </tr>
           </tbody>
           <tfoot>
             <tr className="tfoot-total">
-              <td colSpan={3} className="font-bold">Total Post-Money Capitalization</td>
-              <td className="text-right mono font-bold text-white">
+              <td colSpan={3} className="font-semibold text-white">Total Post-Money Capitalization</td>
+              <td className="text-right mono font-semibold text-white">
                 {Number(result.totalPostMoneyShares).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
               </td>
-              <td className="text-right mono font-bold text-white">100.0000%</td>
-              <td className="text-right mono font-bold text-white">100.0000%</td>
-              <td colSpan={2} className="text-center text-muted font-normal text-xs">
-                Zero share mutation for existing stakeholders; ownership denominator expanded
+              <td className="text-right mono font-semibold text-white">100.0000%</td>
+              <td className="text-right mono font-semibold text-white">100.0000%</td>
+              <td colSpan={2} className="text-center text-muted text-xs">
+                Pro-rata equity expansion across total denominator
               </td>
             </tr>
           </tfoot>
@@ -168,10 +165,10 @@ export default function OwnershipComparisonChart({ result }) {
 
       <div className="dilution-explainer">
         <div className="explainer-item">
-          <strong>Percentage-Point Dilution:</strong> Absolute subtraction: Previous Ownership % - New Ownership %.
+          <strong>Net Dilution (Percentage Points):</strong> Absolute drop in ownership percentage: <code>Previous % - New %</code>.
         </div>
         <div className="explainer-item">
-          <strong>Relative Dilution %:</strong> Proportional equity reduction: ((Previous % - New %) / Previous %) × 100.
+          <strong>Relative Dilution %:</strong> Proportion of existing equity given up: <code>(Net Dilution / Previous %) × 100</code>.
         </div>
       </div>
     </div>

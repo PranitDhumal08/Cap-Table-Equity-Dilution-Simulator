@@ -1,7 +1,9 @@
-import React from 'react';
-import { CheckCircle2, TrendingUp, DollarSign, Award, Layers } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle2, TrendingUp, DollarSign, Award, Layers, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
 
-export default function SimulationResults({ result }) {
+export default function SimulationResults({ result, onExecute, executing }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
   if (!result) return null;
 
   const formatCurrency = (val) => {
@@ -16,14 +18,55 @@ export default function SimulationResults({ result }) {
     return Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
   };
 
+  const handleConfirmExecute = () => {
+    setShowConfirm(false);
+    if (onExecute) {
+      onExecute();
+    }
+  };
+
   return (
     <div className="card results-card">
-      <div className="card-header">
-        <div className="results-header-badge">
-          <CheckCircle2 size={18} className="text-success" />
-          <span>Simulation Outcome</span>
+      <div className="card-header flex-between">
+        <div>
+          <div className="flex-row gap-2">
+            <h2 className="card-title">Simulated Round Economics</h2>
+            <span className="badge-preview">Preview Mode</span>
+          </div>
+          <p className="card-description">Verified post-money pricing, dilution breakdown, and issuance schedule</p>
         </div>
-        <h2 className="card-title">Round Economics &amp; Pricing Breakdown</h2>
+
+        <div className="action-buttons-wrap">
+          {!showConfirm ? (
+            <button
+              onClick={() => setShowConfirm(true)}
+              disabled={executing}
+              className="btn-commit"
+              title="Atomically commit this round into PostgreSQL"
+            >
+              <ShieldCheck size={16} />
+              <span>Commit &amp; Execute Round</span>
+            </button>
+          ) : (
+            <div className="confirm-box">
+              <span className="confirm-text">Commit this round to PostgreSQL?</span>
+              <button
+                onClick={handleConfirmExecute}
+                disabled={executing}
+                className="btn-confirm-yes"
+              >
+                {executing ? <Loader2 size={14} className="spin" /> : 'Confirm Commit'}
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                disabled={executing}
+                className="btn-confirm-cancel"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="summary-banner">
@@ -33,7 +76,7 @@ export default function SimulationResults({ result }) {
       <div className="results-grid">
         <div className="result-tile">
           <div className="result-tile-header">
-            <DollarSign size={16} className="text-primary" />
+            <DollarSign size={15} className="text-muted" />
             <span>Post-Money Valuation</span>
           </div>
           <div className="result-tile-value mono">{formatCurrency(result.postMoneyValuation)}</div>
@@ -42,7 +85,7 @@ export default function SimulationResults({ result }) {
 
         <div className="result-tile">
           <div className="result-tile-header">
-            <TrendingUp size={16} className="text-green" />
+            <TrendingUp size={15} className="text-muted" />
             <span>Price Per Share (PPS)</span>
           </div>
           <div className="result-tile-value mono">₹{formatNumber(result.pricePerShare)}</div>
@@ -51,7 +94,7 @@ export default function SimulationResults({ result }) {
 
         <div className="result-tile">
           <div className="result-tile-header">
-            <Layers size={16} className="text-amber" />
+            <Layers size={15} className="text-muted" />
             <span>New Shares Issued</span>
           </div>
           <div className="result-tile-value mono">{formatNumber(result.newSharesIssued)}</div>
@@ -60,10 +103,10 @@ export default function SimulationResults({ result }) {
 
         <div className="result-tile highlight-tile">
           <div className="result-tile-header">
-            <Award size={16} className="text-purple" />
+            <Award size={15} className="text-primary" />
             <span>{result.newInvestorName} Stake</span>
           </div>
-          <div className="result-tile-value mono text-purple">{Number(result.newInvestorOwnershipPercentage).toFixed(4)}%</div>
+          <div className="result-tile-value mono text-primary">{Number(result.newInvestorOwnershipPercentage).toFixed(4)}%</div>
           <div className="result-tile-sub">{result.newInvestorShareClass} shares across {formatNumber(result.totalPostMoneyShares)} total shares</div>
         </div>
       </div>

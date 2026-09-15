@@ -283,6 +283,86 @@
         "description": "Simulates a venture funding round (read-only) calculating dilution and ownership redistribution without mutating persistent records."
       },
       "response": []
+    },
+    {
+      "name": "7. Execute & Commit Funding Round",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Committed Post-Money Valuation\", function () {",
+              "    pm.expect(jsonData.postMoneyValuation).to.eql(50000000.00);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"companyId\": \"{{companyId}}\",\n  \"roundName\": \"Series A Preferred\",\n  \"preMoneyValuation\": 40000000.00,\n  \"investmentAmount\": 10000000.00,\n  \"investorName\": \"Alpha Ventures\",\n  \"investorType\": \"VC\",\n  \"shareClass\": \"PREFERRED\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/cap-table/execute-round",
+          "host": ["{{baseUrl}}"],
+          "path": ["cap-table", "execute-round"]
+        },
+        "description": "Atomically executes the venture round, updating company valuation, minting investor shares, and appending an immutable transaction audit log."
+      },
+      "response": []
+    },
+    {
+      "name": "8. Get Transaction Audit Log",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Transactions array returned\", function () {",
+              "    pm.expect(jsonData).to.be.an(\"array\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cap-table/{{companyId}}/transactions",
+          "host": ["{{baseUrl}}"],
+          "path": ["cap-table", "{{companyId}}", "transactions"]
+        },
+        "description": "Retrieves chronological audit log of all committed venture funding rounds."
+      },
+      "response": []
     }
   ]
 }

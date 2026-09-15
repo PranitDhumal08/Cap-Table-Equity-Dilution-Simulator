@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Sparkles, AlertCircle } from 'lucide-react';
+import { Play, RotateCcw, AlertCircle } from 'lucide-react';
 
 export default function RoundSimulatorForm({ currentValuation, onSimulate, loading }) {
+  const [roundName, setRoundName] = useState('Series A Preferred');
   const [preMoneyValuation, setPreMoneyValuation] = useState('');
   const [investmentAmount, setInvestmentAmount] = useState('');
   const [investorName, setInvestorName] = useState('Alpha Ventures');
@@ -39,6 +40,7 @@ export default function RoundSimulatorForm({ currentValuation, onSimulate, loadi
     }
 
     onSimulate({
+      roundName: roundName.trim(),
       preMoneyValuation: preMoney,
       investmentAmount: investment,
       investorName: investorName.trim(),
@@ -47,8 +49,9 @@ export default function RoundSimulatorForm({ currentValuation, onSimulate, loadi
     });
   };
 
-  const handleLoadDemo = () => {
-    setPreMoneyValuation('40000000');
+  const handleReset = () => {
+    setRoundName('Series A Preferred');
+    setPreMoneyValuation(currentValuation ? currentValuation.toString() : '40000000');
     setInvestmentAmount('10000000');
     setInvestorName('Alpha Ventures');
     setInvestorType('VC');
@@ -60,23 +63,23 @@ export default function RoundSimulatorForm({ currentValuation, onSimulate, loadi
     <div className="card form-card">
       <div className="card-header flex-between">
         <div>
-          <h2 className="card-title">Venture Round Simulator</h2>
-          <p className="card-description">Model a hypothetical equity financing round (idempotent read-only engine)</p>
+          <h2 className="card-title">Financing Round Parameters</h2>
+          <p className="card-description">Configure pre-money valuation, investment capital, and incoming investor terms</p>
         </div>
         <button 
           type="button" 
-          onClick={handleLoadDemo} 
+          onClick={handleReset} 
           className="btn-secondary btn-sm"
-          title="Load standard Series A example"
+          title="Reset to default NovaFin terms"
         >
-          <Sparkles size={14} />
-          <span>Load Series A Preset</span>
+          <RotateCcw size={13} />
+          <span>Reset Preset</span>
         </button>
       </div>
 
       {formError && (
         <div className="alert-box alert-danger">
-          <AlertCircle size={16} />
+          <AlertCircle size={15} />
           <span>{formError}</span>
         </div>
       )}
@@ -84,31 +87,16 @@ export default function RoundSimulatorForm({ currentValuation, onSimulate, loadi
       <form onSubmit={handleSubmit} className="simulator-form">
         <div className="form-grid">
           <div className="form-group">
-            <label className="form-label">Pre-Money Valuation (INR ₹)</label>
+            <label className="form-label">Round Title</label>
             <input
-              type="number"
-              className="form-input mono"
-              value={preMoneyValuation}
-              onChange={(e) => setPreMoneyValuation(e.target.value)}
-              placeholder="e.g. 40000000"
-              step="any"
+              type="text"
+              className="form-input"
+              value={roundName}
+              onChange={(e) => setRoundName(e.target.value)}
+              placeholder="e.g. Series A Preferred"
               required
             />
-            <span className="input-hint">Agreed company valuation prior to investment</span>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Investment Capital (INR ₹)</label>
-            <input
-              type="number"
-              className="form-input mono"
-              value={investmentAmount}
-              onChange={(e) => setInvestmentAmount(e.target.value)}
-              placeholder="e.g. 10000000"
-              step="any"
-              required
-            />
-            <span className="input-hint">New cash injected by incoming investor</span>
+            <span className="input-hint">Venture round classification</span>
           </div>
 
           <div className="form-group">
@@ -121,22 +109,50 @@ export default function RoundSimulatorForm({ currentValuation, onSimulate, loadi
               placeholder="e.g. Alpha Ventures"
               required
             />
-            <span className="input-hint">Entity or syndicate injecting capital</span>
+            <span className="input-hint">Institutional fund or syndicate</span>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Investor Category</label>
+            <label className="form-label">Pre-Money Valuation (INR ₹)</label>
+            <input
+              type="number"
+              className="form-input mono"
+              value={preMoneyValuation}
+              onChange={(e) => setPreMoneyValuation(e.target.value)}
+              placeholder="40000000"
+              step="any"
+              required
+            />
+            <span className="input-hint">Agreed enterprise valuation prior to round</span>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">New Capital Investment (INR ₹)</label>
+            <input
+              type="number"
+              className="form-input mono"
+              value={investmentAmount}
+              onChange={(e) => setInvestmentAmount(e.target.value)}
+              placeholder="10000000"
+              step="any"
+              required
+            />
+            <span className="input-hint">Cash invested in exchange for newly issued shares</span>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Stakeholder Category</label>
             <select
               className="form-input"
               value={investorType}
               onChange={(e) => setInvestorType(e.target.value)}
             >
-              <option value="VC">VC (Venture Capital)</option>
+              <option value="VC">VC (Venture Capital Fund)</option>
               <option value="ANGEL">Angel Investor</option>
               <option value="FOUNDER">Founder Follow-on</option>
-              <option value="EMPLOYEE">Employee / Management</option>
+              <option value="EMPLOYEE">Management / Employee</option>
             </select>
-            <span className="input-hint">Classification for equity categorization</span>
+            <span className="input-hint">Cap table category</span>
           </div>
 
           <div className="form-group">
@@ -146,17 +162,17 @@ export default function RoundSimulatorForm({ currentValuation, onSimulate, loadi
               value={shareClass}
               onChange={(e) => setShareClass(e.target.value)}
             >
-              <option value="PREFERRED">Series Preferred (Standard for Institutional VCs)</option>
-              <option value="COMMON">Common Shares</option>
+              <option value="PREFERRED">Preferred Stock (Institutional Standard)</option>
+              <option value="COMMON">Common Stock</option>
             </select>
-            <span className="input-hint">Seniority class for new shares</span>
+            <span className="input-hint">Seniority &amp; liquidation class</span>
           </div>
         </div>
 
         <div className="form-actions">
           <button type="submit" disabled={loading} className="btn-primary">
-            <Play size={16} />
-            <span>{loading ? 'Executing Financial Calculation...' : 'Simulate Funding Round'}</span>
+            <Play size={15} />
+            <span>{loading ? 'Calculating Round Economics...' : 'Simulate Round Dilution'}</span>
           </button>
         </div>
       </form>
